@@ -5,13 +5,27 @@
 This module provides the `adafruit_lsm6ds.lsm6dsox` subclass of LSM6DS sensors
 ==============================================================================
 """
-from . import LSM6DS, LSM6DS_DEFAULT_ADDRESS, LSM6DS_CHIP_ID
+from . import LSM6DS, LSM6DS_DEFAULT_ADDRESS, LSM6DS_CHIP_ID, AccelHPF
 
 try:
     import typing  # pylint: disable=unused-import
     from busio import I2C
 except ImportError:
     pass
+
+AccelHPF.string.clear()
+AccelHPF.lsb.clear()
+
+AccelHPF.add_values((
+        ("SLOPE", 0, 0, None),
+        ("HPF_DIV10", 1, 0, None),
+        ("HPF_DIV20", 2, 0, None),
+        ("HPF_DIV45", 3, 0, None),
+        ("HPF_DIV100", 4, 0, None),
+        ("HPF_DIV200", 5, 0, None),
+        ("HPF_DIV400", 6, 0, None),
+        ("HPF_DIV800", 7, 0, None), )
+)
 
 
 class LSM6DSOX(LSM6DS):  # pylint: disable=too-many-instance-attributes
@@ -47,7 +61,7 @@ class LSM6DSOX(LSM6DS):  # pylint: disable=too-many-instance-attributes
             gyro_x, gyro_z, gyro_z = sensor.gyro
 
     """
-
+    
     CHIP_ID = LSM6DS_CHIP_ID
 
     def __init__(

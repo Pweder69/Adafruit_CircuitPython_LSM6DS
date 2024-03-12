@@ -72,7 +72,7 @@ except ImportError:
     pass
 
 
-class CV:
+class CV:   
     """struct helper"""
 
     @classmethod
@@ -136,6 +136,22 @@ AccelHPF.add_values(
     )
 )
 
+class AccelLPF(CV):
+    """Options for the accelerometer low pass filter"""
+    
+AccelLPF.add_values(
+    (
+        ("LPF_DIV4", 0, 0, None),
+        ("LPF_DIV10", 1, 0, None),
+        ("LPF_DIV20", 2, 0, None),
+        ("LPF_DIV45", 3, 0, None),
+        ("LPF_DIV100", 4, 0, None),
+        ("LPF_DIV200", 5, 0, None),
+        ("LPF_DIV400", 6, 0, None),
+        ("LPF_DIV800", 7, 0, None), 
+    )
+)
+
 LSM6DS_DEFAULT_ADDRESS = const(0x6A)
 
 LSM6DS_CHIP_ID = const(0x6C)
@@ -177,7 +193,7 @@ class LSM6DS:  # pylint: disable=too-many-instance-attributes
     :param int address: TThe I2C device address. Defaults to :const:`0x6A`
 
     """
-
+    
     # ROUnaryStructs:
     _chip_id = ROUnaryStruct(_LSM6DS_WHOAMI, "<b")
 
@@ -198,8 +214,16 @@ class LSM6DS:  # pylint: disable=too-many-instance-attributes
 
     _sw_reset = RWBit(_LSM6DS_CTRL3_C, 0)
     _bdu = RWBit(_LSM6DS_CTRL3_C, 6)
-
-    _high_pass_filter = RWBits(2, _LSM6DS_CTRL8_XL, 5)
+    
+    high_pass_filter = RWBits(3, _LSM6DS_CTRL8_XL, 0) # The variation is only to the on call of the function changing the enable/disable bits.
+    low_pass_filter = high_pass_filter
+    
+    _HP_SLOPE_XL_EN = RWBit(_LSM6DS_CTRL8_XL, 5)
+    
+    # RWBits: num of bit, register adress, lowest bit index
+    
+    
+    _enable_LPF = RWBit(_LSM6DS_CTRL1_XL, 6)
     _i3c_disable = RWBit(_LSM6DS_CTRL9_XL, 1)
     _pedometer_reset = RWBit(_LSM6DS_CTRL10_C, 1)
     _func_enable = RWBit(_LSM6DS_CTRL10_C, 2)
@@ -382,14 +406,30 @@ class LSM6DS:  # pylint: disable=too-many-instance-attributes
     @property
     def high_pass_filter(self) -> int:
         """The high pass filter applied to accelerometer data"""
-        return self._high_pass_filter
+        return self._filter_config
 
     @high_pass_filter.setter
     def high_pass_filter(self, value: int) -> None:
         if not AccelHPF.is_valid(value):
             raise AttributeError("range must be an `AccelHPF`")
-        self._high_pass_filter = value
+        self._HP_SLOPE_XL_EN = False
+        self._filter_config = value
 
+    @property
+    def low_pass_filter(self) -> int:
+        """The low pass filter applied to accelerometer data"""
+        return self._filter_config
+    
+    @low_pass_filter.setter
+    def set_low_pass_filter(self, value: int) -> None:
+        if not AccelHPF.is_valid(value):
+            raise AttributeError("range must be an `AccelHPF`")
+        self._HP_SLOPE_XL_EN = True
+        self._enable_LPF = True
+        
+        self._filter_config = value
+        
+    
     @property
     def temperature(self) -> float:
         """Temperature in Celsius"""
