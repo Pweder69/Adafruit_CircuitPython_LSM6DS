@@ -72,7 +72,7 @@ except ImportError:
     pass
 
 
-class CV:   
+class CV:
     """struct helper"""
 
     @classmethod
@@ -129,6 +129,7 @@ class AccelHPF(CV):
 
 AccelHPF.add_values(
     (
+        ("DISABLED",None , None, None),
         ("SLOPE", 0, 0, None),
         ("HPF_DIV100", 1, 0, None),
         ("HPF_DIV9", 2, 0, None),
@@ -141,6 +142,7 @@ class AccelLPF(CV):
     
 AccelLPF.add_values(
     (
+        ("Disabled",None,0,None),
         ("LPF_DIV4", 0, 0, None),
         ("LPF_DIV10", 1, 0, None),
         ("LPF_DIV20", 2, 0, None),
@@ -216,9 +218,11 @@ class LSM6DS:  # pylint: disable=too-many-instance-attributes
     _bdu = RWBit(_LSM6DS_CTRL3_C, 6)
     
     high_pass_filter = RWBits(3, _LSM6DS_CTRL8_XL, 0) # The variation is only to the on call of the function changing the enable/disable bits.
-    low_pass_filter = high_pass_filter
+    low_pass_filter = None
+    _filter_config = RWBits(3, _LSM6DS_CTRL8_XL, 0)
     
     _HP_SLOPE_XL_EN = RWBit(_LSM6DS_CTRL8_XL, 5)
+    
     
     # RWBits: num of bit, register adress, lowest bit index
     
@@ -410,10 +414,16 @@ class LSM6DS:  # pylint: disable=too-many-instance-attributes
 
     @high_pass_filter.setter
     def high_pass_filter(self, value: int) -> None:
-        if not AccelHPF.is_valid(value):
+        if not AccelHPF.is_valid(value) or value == None:
             raise AttributeError("range must be an `AccelHPF`")
-        self._HP_SLOPE_XL_EN = False
-        self._filter_config = value
+        if value:
+            self._HP_SLOPE_XL_EN = True
+            self._filter_config = value 
+        else:
+            self._HP_SLOPE_XL_EN = False
+            self._filter_config = 0
+            
+    
 
     @property
     def low_pass_filter(self) -> int:
@@ -421,13 +431,17 @@ class LSM6DS:  # pylint: disable=too-many-instance-attributes
         return self._filter_config
     
     @low_pass_filter.setter
-    def set_low_pass_filter(self, value: int) -> None:
-        if not AccelHPF.is_valid(value):
+    def low_pass_filter(self, value: int) -> None:
+        if value != None and not AccelHPF.is_valid(value):
             raise AttributeError("range must be an `AccelHPF`")
-        self._HP_SLOPE_XL_EN = True
-        self._enable_LPF = True
-        
-        self._filter_config = value
+        if value:
+            self._HP_SLOPE_XL_EN = False
+            self._enable_LPF = True
+            self._filter_config = value
+        else:
+            self._enable_LPF = False
+            self._filter_config = 0
+            
         
     
     @property
